@@ -5,7 +5,6 @@ To use JCL Host for Arduino, download the folder "libaries" and paste its conten
 
 ```arduino
 #include <jcl.h>
-#include "utils.h"
 
 void setup() {
   Serial.begin(9600); 
