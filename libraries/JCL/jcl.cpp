@@ -79,13 +79,13 @@ void JCL::conectToBroker(){
   Serial.println(getMetadata()->getBrokerIP());
   Serial.println(getMetadata()->getBrokerPort());
   // Serial.print("Attempting MQTT connection...");
-  for (int i=0;i<4;i++){
+//  for (int i=0;i<4;i++){
     if (mqtt->connect(getMetadata()->getBoardName())) {
       Serial.println("connected");
-      break;
+//      break;
     }
-    delay(1000);
-  }
+//    delay(1000);
+//  }
 }
 
 void JCL::run(){

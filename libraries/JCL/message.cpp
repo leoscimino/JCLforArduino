@@ -232,7 +232,7 @@ void Message::treatMessage(){
         sendResultBool(false);
       }else{
         // printMessagePROGMEM(Constants::addContextActionMessage);
-        Serial.println("AddContextAction");
+        Serial.println("AddContextAction1");
         uint16_t pos = 17;
         while (jcl->message[pos] != 74)
           pos++;
@@ -377,7 +377,6 @@ void Message::treatMessage(){
         contextName[x] = jcl->message[44 + x];
         contextName[nChars] = '\0';*/
         Context *ctx = NULL;
-        Serial.println("AddContextAction");
         uint16_t pos = 17;
         while (jcl->message[pos] != 74)
           pos++;
@@ -614,9 +613,9 @@ Serial.println(mmac);*/
 }
 
 void Message::receiveServerAnswer(){
-  /*while (!jcl->getClient().available());
+  while (!jcl->getClient().available());
   while (jcl->getClient().available())
-    jcl->getClient().read();*/
+    jcl->getClient().read();
 }
 
 void Message::receiveRegisterServerAnswer(){
@@ -795,6 +794,7 @@ void Message::sendMetadata(int messageType){
       enableSensorSize += strlen(jcl->getSensors()[i]->getPin());
 
   enableSensorSize += atoi(jcl->getMetadata()->getNumConfiguredSensors());
+enableSensorSize++;
 
   int totalSizePins = 0, totalSizeNameSensor = 0, totalTimeSensor = 0, totalDirSensor = 0, totalSensorSize = 0;
   for (i=0; i < JCL::getTotalSensors(); i++){
@@ -837,6 +837,9 @@ void Message::sendMetadata(int messageType){
     (strlen(Constants::sensorSizeMessage) * atoi(jcl->getMetadata()->getNumConfiguredSensors())) + totalSizePins + totalSensorSize + ((4 + 2) * atoi(jcl->getMetadata()->getNumConfiguredSensors())) +
     (strlen(Constants::sensorSamplingMessage) * atoi(jcl->getMetadata()->getNumConfiguredSensors())) + totalSizePins + totalTimeSensor + ((4 + 2) * atoi(jcl->getMetadata()->getNumConfiguredSensors()));
   }
+else
+sensorsSize += strlen(Constants::enableSensorMessage) + enableSensorSize + 4 + 2;
+
   int standBySize = jcl->getMetadata()->isStandBy()?strlen(Constants::trueMessage):strlen(Constants::falseMessage);
   // Calculate size to append to the message
   totalSize =
@@ -982,7 +985,10 @@ void Message::sendMetadata(int messageType){
       jcl->message[currentPosition++] = Constants::falseMessage[k];
   }
 
-  if (atoi(jcl->getMetadata()->getNumConfiguredSensors()) != 0){
+
+
+//  if (atoi(jcl->getMetadata()->getNumConfiguredSensors()) != 0){
+
     /* Setting the value of the ENABLE_SENSOR */
     jcl->message[currentPosition++] =  10;
     jcl->message[currentPosition++] = strlen(Constants::enableSensorMessage) + enableSensorSize + 4;
@@ -1000,6 +1006,7 @@ void Message::sendMetadata(int messageType){
         jcl->message[currentPosition++] = ';';
       }
     }
+  jcl->message[currentPosition++] = ';';
 
     /* Setting the value of the SENSOR_ALIAS */
     for (i=0; i< JCL::getTotalSensors(); i++){
@@ -1074,7 +1081,7 @@ void Message::sendMetadata(int messageType){
             jcl->message[currentPosition++] = jcl->getSensors()[i]->getDelay()[k];
       }
     }
-  }
+//  }
   boolean activateEncryption = false;
   if ( jcl->isEncryption() && messageType == -1 ){
     jcl->setEncryption(false);
@@ -1090,8 +1097,8 @@ void Message::sendMetadata(int messageType){
 
   if ( messageType == -1)
     receiveRegisterServerAnswer();
-  /*else
-    receiveServerAnswer();*/
+  else
+    receiveServerAnswer();
 }
 
 void Message::sensing(int pin, boolean sensorNow){
@@ -1170,7 +1177,8 @@ jcl->getSensors()[pin]->count++;
     }
   }
   jcl->getSensors()[pin]->setValue(sensorValue);
-  //receiveServerAnswer();
+  if (!sensorNow)
+    receiveServerAnswer();
 }
 
 void Message::unregister(){
@@ -1273,7 +1281,8 @@ bool Message::removeContextAction(bool isActing){
         break;
     }
   }
-
+Serial.print("1: ");
+Serial.println(ctx == NULL);
   if ( ctx == NULL )
     return false;
 
