@@ -45,6 +45,7 @@ class JCL{
     int numSensors;
   private:
     void beginEthernet();
+    void sendBroadcastMessage();
     void connectToServer();
     void makeSensing();
     void checkContext(int pin);

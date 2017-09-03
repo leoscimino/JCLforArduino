@@ -7,6 +7,8 @@
 #include <Arduino.h>
 #include <EEPROM.h>
 #include <avr/pgmspace.h>
+#include <Ethernet.h>
+#include <SPI.h>
 
 JCL::JCL(char* hostIP, int hostPort, char* mac){
 /*  char mac[18];
@@ -39,7 +41,7 @@ void JCL::startHost(){
     readEprom();
   beginEthernet();
   connectToServer();
-  conectToBroker();
+  // conectToBroker();
   listSensors();
   run();
 }
@@ -54,16 +56,65 @@ void JCL::setBrokerData(char* brokerIP, int brokerPort){
   metadata->setBrokerPort(brokerPort);
 }
 
+void JCL::sendBroadcastMessage(){
+  int UDP_PORT = 9696;
+  char packetBuffer[18];
+
+  EthernetUDP udp;
+  udp.begin(UDP_PORT);
+  IPAddress broadcastIp(255,255,255,255);
+  while(true) {
+    udp.beginPacket(broadcastIp, UDP_PORT);
+    udp.write("SERVERMAINPORT\n");
+    udp.endPacket();
+    int pos = 0;
+    int packetSize = udp.parsePacket();
+    if (packetSize) {
+      //Serial.print("Received packet of size ");
+      //Serial.println(packetSize);
+      IPAddress remote = udp.remoteIP();
+      char ip[18], port[8];
+      for (int i = 0; i < 4; i++) {
+        char part[4];
+        sprintf(part, "%d", remote[i]);
+        for (int k = 0; k < strlen(part); k++)
+          ip[pos++] = part[k];
+        if (i < 3)
+          ip[pos++] = '.';
+        else
+          ip[pos] = '\0';
+        //Serial.println(meta.serverIp);
+      }
+      udp.read(packetBuffer, UDP_TX_PACKET_MAX_SIZE);
+      //Serial.println(packetBuffer);
+      pos = 0;
+      for (int k=0; k<packetSize; k++)
+        port[pos++] = packetBuffer[k];
+      port[pos] = '\0';
+      metadata->setServerIP(ip);
+      metadata->setServerPort(port);
+      //Serial.println(meta.serverPort);
+      break;
+    }
+    delay(5000);
+  }
+  udp.stop();
+}
+
+
 void JCL::connectToServer(){
   int* ip = Utils::getIPAsArray(metadata->getServerIP());
   while (!client.connected()){
     client.connect(IPAddress(ip[0], ip[1], ip[2], ip[3]), atoi(metadata->getServerPort()));
-    if ( millis() >= 15000 && !client.connected() ){
-      Serial.println("Not Connected");
+    if ( millis() >= 8000 && !client.connected() ){
+      sendBroadcastMessage();
+      ip = Utils::getIPAsArray(metadata->getServerIP());
+      client.connect(IPAddress(ip[0], ip[1], ip[2], ip[3]), atoi(metadata->getServerPort()));
+      //Serial.println("Not Connected");
       // Message::printMessagePROGMEM(Constants::connectionErrorMessage);
-      delay(10000);
+      //delay(1000);
     }else if (client.connected()){
-      Serial.println("Connected");
+      //Serial.println("Connected");
       // Message::printMessagePROGMEM(Constants::connectedMessage);
     }
   }
@@ -79,13 +130,13 @@ void JCL::conectToBroker(){
   Serial.println(getMetadata()->getBrokerIP());
   Serial.println(getMetadata()->getBrokerPort());
   // Serial.print("Attempting MQTT connection...");
-//  for (int i=0;i<4;i++){
+  for (int i=0;i<4;i++){
     if (mqtt->connect(getMetadata()->getBoardName())) {
       Serial.println("connected");
-//      break;
+      break;
     }
-//    delay(1000);
-//  }
+    delay(1000);
+  }
 }
 
 void JCL::run(){
@@ -116,15 +167,25 @@ void JCL::run(){
 void JCL::makeSensing(){
   //  for( int i=0; i < TOTAL_SENSORS; i++){
     //  Sensor* s = this->getSensors()[i];
-       for( int i=0; i < numSensors; i++){
+       for( int i=1; i < numSensors; i++){
           Sensor* s = this->getSensors()[availableSensors[i]];
 
       if (s!= NULL)
         checkContext(i);
 
       if( s != NULL && millis() - s->getLastExecuted() >= atoi(s->getDelay())){
+//Serial.println("antes sensing");
+unsigned long currentMillis = millis();
+Serial.println(s->getPin());
         Message m(this);
         m.sensing(atoi(s->getPin()), false);
+//Serial.println("depois sensing");
+/*unsigned long finalMillis = millis();
+if (s->count < 800){
+  Serial.print(finalMillis - currentMillis);
+  Serial.print("|");
+  Serial.println(s->getPin());
+}*/
       }
     }
   //}
@@ -204,6 +265,7 @@ void JCL::configureJCLServer(char *serverIP, int serverPort){
 
 void JCL::listSensors(){
   // Message::printMessagePROGMEM(Constants::configuredSensorsMessage);
+/*  Serial.print("free: "); Serial.println(freeRam())  ;
   for (int i=0; i<TOTAL_SENSORS; i++){
     if (sensors[i] != NULL){
       Serial.print(sensors[i]->getPin());
@@ -235,7 +297,7 @@ void JCL::listSensors(){
       }
       Serial.println();
     }
-  }
+  }*/
 }
 
 int JCL::freeRam (){

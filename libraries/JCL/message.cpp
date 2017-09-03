@@ -1102,6 +1102,7 @@ sensorsSize += strlen(Constants::enableSensorMessage) + enableSensorSize + 4 + 2
 }
 
 void Message::sensing(int pin, boolean sensorNow){
+Serial.print("sensing: "); Serial.println(pin);
   int size;
   unsigned int i;
   int currentPosition = 0;
@@ -1169,12 +1170,12 @@ jcl->getSensors()[pin]->count++;
 
     jcl->getSensors()[pin]->setLastExecuted(millis());
 
-     if (jcl->getMQTTClient()->connected()){
+/*     if (jcl->getMQTTClient()->connected()){
       Serial.println(jcl->getSensors()[pin]->getSensorNickname());
       char mqttMessage[6];
       sprintf(mqttMessage, "%d", sensorValue);
       jcl->getMQTTClient()->publish(jcl->getSensors()[pin]->getSensorNickname(), mqttMessage);
-    }
+    }*/
   }
   jcl->getSensors()[pin]->setValue(sensorValue);
   if (!sensorNow)
